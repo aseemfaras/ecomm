@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production-approval
+      url: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
     steps:
       - name: Send Deployment Approval Request
         uses: dawidd6/action-send-mail@v3
@@ -32,11 +33,31 @@ jobs:
             Please approve the deployment at:
             ${{ github.server_url }}/${{ github.repository }}/actions/workflows/vercel-deploy.yml
             
+            Commit URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+            
             Note: Deployment will proceed after approval from any one approver.
           to: |
             ${{ secrets.APPROVER_EMAIL_1}}
             ${{ secrets.APPROVER_EMAIL_2 }}
           from: GitHub Actions
+
+      - name: Create Deployment Check
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const sha = context.sha;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            
+            // Create a deployment status check
+            await github.rest.repos.createCommitStatus({
+              owner,
+              repo,
+              sha,
+              state: 'pending',
+              description: 'Waiting for deployment approval',
+              context: 'Deployment Approval'
+            });
 
   Deploy-Production:
     needs: Request-Approval
@@ -48,6 +69,24 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Update Deployment Status
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const sha = context.sha;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            
+            // Update the deployment status to success
+            await github.rest.repos.createCommitStatus({
+              owner,
+              repo,
+              sha,
+              state: 'success',
+              description: 'Deployment approved',
+              context: 'Deployment Approval'
+            });
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
@@ -79,6 +118,9 @@ jobs:
             Commit: ${{ github.sha }}
             Branch: ${{ github.ref }}
             Deployment URL: ${{ steps.deploy.outputs.url }}
+            
+            You can view the deployment at:
+            ${{ steps.deploy.outputs.url }}
           to: |
             ${{ secrets.APPROVER_EMAIL_1}}
             ${{ secrets.APPROVER_EMAIL_2 }}
