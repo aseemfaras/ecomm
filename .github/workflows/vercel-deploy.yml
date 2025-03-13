@@ -3,22 +3,17 @@ name: Deploy to Vercel
 on:
   push:
     branches: [ main ]
-  pull_request:
-    types: [closed]
-    branches:
-      - main
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 jobs:
-  Notify-And-Deploy:
-    if: github.event.pull_request.merged == true
+  Deploy-Production:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}
+      url: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
     
     steps:
       - name: Send Deployment Approval Request
@@ -30,11 +25,11 @@ jobs:
           password: ${{ secrets.MAIL_PASSWORD }}
           subject: "Deployment Approval Required"
           body: |
-            A new pull request has been merged to main branch.
+            New changes have been pushed to main branch.
             Please review and approve the deployment.
             
-            PR Title: ${{ github.event.pull_request.title }}
-            PR Link: ${{ github.event.pull_request.html_url }}
+            Commit: ${{ github.sha }}
+            Repository: ${{ github.repository }}
           to: ${{ secrets.APPROVER_EMAIL }}
           from: GitHub Actions
 
@@ -65,7 +60,7 @@ jobs:
           body: |
             The deployment to production was successful!
             
-            PR Title: ${{ github.event.pull_request.title }}
+            Commit: ${{ github.sha }}
             Branch: ${{ github.ref }}
           to: ${{ secrets.APPROVER_EMAIL }}
           from: GitHub Actions 
