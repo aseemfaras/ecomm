@@ -74,4 +74,5 @@ jobs:
             Branch: ${{ github.ref }}
             Deployment URL: ${{ steps.deploy.outputs.url }}
           to: ${{ secrets.APPROVER_EMAIL }}
+              ${{ secrets.APPROVER_EMAIL_2 }}
           from: GitHub Actions 
