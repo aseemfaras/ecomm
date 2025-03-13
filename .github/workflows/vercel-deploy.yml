@@ -29,8 +29,36 @@ jobs:
             
             Please approve the deployment at:
             ${{ github.server_url }}/${{ github.repository }}/actions/workflows/vercel-deploy.yml
-          to: ${{ secrets.APPROVER_EMAIL }}
+            
+            Note: Deployment will proceed after approval from any one approver.
+          to: |
+            ${{ secrets.APPROVER_EMAIL_1}}
+            ${{ secrets.APPROVER_EMAIL_2 }}
           from: GitHub Actions
+          
+      - name: Notify GitHub Users
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const approver1 = '${{ secrets.GITHUB_APPROVER_1 }}';
+            const approver2 = '${{ secrets.GITHUB_APPROVER_2 }}';
+            const body = `@${approver1} @${approver2} New deployment requires your approval.
+            
+            Please review and approve the deployment in the "production" environment.
+            
+            Commit: ${context.sha}
+            Repository: ${context.repo.owner}/${context.repo.repo}`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number || (await github.rest.repos.getCommit({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: context.sha
+              })).data.commit.message.split('\n')[0],
+              body: body
+            });
 
   Deploy-Production:
     needs: Request-Approval
@@ -73,6 +101,7 @@ jobs:
             Commit: ${{ github.sha }}
             Branch: ${{ github.ref }}
             Deployment URL: ${{ steps.deploy.outputs.url }}
-          to: ${{ secrets.APPROVER_EMAIL }}
-              ${{ secrets.APPROVER_EMAIL_2 }}
-          from: GitHub Actions 
+          to: |
+            ${{ secrets.APPROVER_EMAIL_1}}
+            ${{ secrets.APPROVER_EMAIL_2 }}
+          from: GitHub Actions
