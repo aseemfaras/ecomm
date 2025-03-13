@@ -11,6 +11,8 @@ env:
 jobs:
   Request-Approval:
     runs-on: ubuntu-latest
+    environment:
+      name: production-approval
     steps:
       - name: Send Deployment Approval Request
         uses: dawidd6/action-send-mail@v3
